@@ -1,0 +1,19 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*credentials*.json
+*adc*.json
+auth/
+credentials/
+
+# local install artifacts
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.pyc
+READY.txt
+mcp_launcher.py
+.DS_Store

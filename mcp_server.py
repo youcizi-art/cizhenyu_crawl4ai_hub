@@ -22,6 +22,7 @@ import sys
 import traceback
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 SERVER_NAME = "crawl4ai"
 SERVER_VERSION = "0.1.0"
@@ -29,8 +30,30 @@ SUPPORTED_PROTOCOLS = ("2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "
 DEFAULT_PROTOCOL = "2025-06-18"
 MAX_OUTPUT_CHARS = 60_000
 
+def _load_hub_token() -> str:
+    """Prefer process env, then Deploy auth dir crawl4ai.json / hub.json. Never hardcode."""
+    env = os.environ.get("C4AI_HUB_TOKEN", "").strip()
+    if env:
+        return env
+    for key in ("CIZHENYU_AUTH_DIR", "SEOGEO_AUTH_DIR"):
+        base = os.environ.get(key, "").strip()
+        if not base:
+            continue
+        for name in ("crawl4ai.json", "hub.json"):
+            path = Path(base) / name
+            if path.is_file():
+                try:
+                    conf = json.loads(path.read_text(encoding="utf-8-sig"))
+                    token = (conf.get("hubToken") or conf.get("token") or conf.get("C4AI_HUB_TOKEN") or "").strip()
+                    if token:
+                        return token
+                except (OSError, ValueError, TypeError):
+                    pass
+    return ""
+
+
 HUB_URL = os.environ.get("C4AI_HUB_URL", "http://127.0.0.1:11235").rstrip("/")
-HUB_TOKEN = os.environ.get("C4AI_HUB_TOKEN", "")
+HUB_TOKEN = _load_hub_token()
 HUB_TIMEOUT = float(os.environ.get("C4AI_HUB_TIMEOUT", "180"))
 
 INSTRUCTIONS = (
