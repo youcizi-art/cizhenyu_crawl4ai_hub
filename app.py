@@ -156,6 +156,7 @@ class CrawlEngine:
         self._cache: OrderedDict[str, tuple[float, dict]] = OrderedDict()
         self._cache_lock = asyncio.Lock()
         self.started_at: float | None = None
+        self.browser_error: str | None = None
         self.stats: dict[str, int] = {
             "crawl": 0,
             "search": 0,
@@ -166,7 +167,7 @@ class CrawlEngine:
         }
 
     # -- lifecycle ---------------------------------------------------------
-    async def start(self) -> None:
+    async def _launch_browser(self) -> None:
         browser = BrowserConfig(
             headless=True,
             verbose=False,
@@ -175,9 +176,37 @@ class CrawlEngine:
             viewport_height=900,
             text_mode=False,
         )
-        self._crawler = AsyncWebCrawler(config=browser)
-        await self._crawler.start()
+        crawler = AsyncWebCrawler(config=browser)
+        await crawler.start()
+        self._crawler = crawler
+        self.browser_error = None
+
+    async def start(self) -> None:
+        """Bring hub HTTP up even if Chromium is missing; browser can recover later."""
         self.started_at = time.time()
+        try:
+            await self._launch_browser()
+        except Exception as exc:  # noqa: BLE001
+            self.browser_error = str(exc)
+            self._crawler = None
+            hint = (
+                "Playwright Chromium 未就绪。在工具目录执行："
+                " .venv\\Scripts\\python.exe -m playwright install chromium"
+            )
+            if "Executable doesn't exist" in self.browser_error or "playwright" in self.browser_error.lower():
+                self.browser_error = f"{self.browser_error}\n{hint}"
+
+    async def ensure_browser(self) -> None:
+        if self._crawler is not None:
+            return
+        try:
+            await self._launch_browser()
+        except Exception as exc:  # noqa: BLE001
+            self.browser_error = str(exc)
+            raise RuntimeError(
+                f"浏览器未启动：{exc}。请在工具目录执行 "
+                "`.venv\\Scripts\\python.exe -m playwright install chromium` 后重试。"
+            ) from exc
 
     async def close(self) -> None:
         if self._crawler is not None:
@@ -186,6 +215,11 @@ class CrawlEngine:
 
     @property
     def ready(self) -> bool:
+        # Hub process is up once start() ran; browser may still be recovering.
+        return self.started_at is not None
+
+    @property
+    def browser_ready(self) -> bool:
         return self._crawler is not None
 
     # -- cache -------------------------------------------------------------
@@ -378,8 +412,8 @@ class CrawlEngine:
 
     # -- helpers -----------------------------------------------------------
     async def _call(self, url: str, cfg: CrawlerRunConfig):
-        if self._crawler is None:
-            raise RuntimeError("crawler not started")
+        await self.ensure_browser()
+        assert self._crawler is not None
         return await self._crawler.arun(url=url, config=cfg)
 
     @staticmethod
@@ -460,6 +494,8 @@ def root() -> dict:
 def health() -> dict:
     return {
         "ok": engine.ready,
+        "browser": engine.browser_ready,
+        "browser_error": engine.browser_error,
         "version": HUB_VERSION,
         "uptime_s": int(time.time() - engine.started_at) if engine.started_at else 0,
         "concurrency": MAX_CONCURRENCY,
