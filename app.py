@@ -167,7 +167,16 @@ class CrawlEngine:
         }
 
     # -- lifecycle ---------------------------------------------------------
+    def _browser_channel(self) -> str:
+        """Prefer Deploy shared strategy: system Chrome/Edge channel, else chromium."""
+        for key in ("CRAWL4AI_CHROME_CHANNEL", "CIZHENYU_BROWSER_CHANNEL"):
+            v = (os.environ.get(key) or "").strip().lower()
+            if v in ("chrome", "msedge", "chromium"):
+                return v
+        return "chromium"
+
     async def _launch_browser(self) -> None:
+        channel = self._browser_channel()
         browser = BrowserConfig(
             headless=True,
             verbose=False,
@@ -175,6 +184,8 @@ class CrawlEngine:
             viewport_width=1366,
             viewport_height=900,
             text_mode=False,
+            chrome_channel=channel,
+            channel=channel,
         )
         crawler = AsyncWebCrawler(config=browser)
         await crawler.start()
@@ -190,8 +201,8 @@ class CrawlEngine:
             self.browser_error = str(exc)
             self._crawler = None
             hint = (
-                "Playwright Chromium 未就绪。在工具目录执行："
-                " .venv\\Scripts\\python.exe -m playwright install chromium"
+                "浏览器未就绪。请安装 Google Chrome / Microsoft Edge，"
+                "或由 Deploy 下载工作目录共享 Chromium（browsers/pw）后重试。"
             )
             if "Executable doesn't exist" in self.browser_error or "playwright" in self.browser_error.lower():
                 self.browser_error = f"{self.browser_error}\n{hint}"
@@ -204,8 +215,7 @@ class CrawlEngine:
         except Exception as exc:  # noqa: BLE001
             self.browser_error = str(exc)
             raise RuntimeError(
-                f"浏览器未启动：{exc}。请在工具目录执行 "
-                "`.venv\\Scripts\\python.exe -m playwright install chromium` 后重试。"
+                f"浏览器未启动：{exc}。请安装 Chrome/Edge，或使用 Deploy 共享 Chromium。"
             ) from exc
 
     async def close(self) -> None:
