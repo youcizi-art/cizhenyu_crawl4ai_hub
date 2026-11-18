@@ -1,0 +1,36 @@
+{
+  "protocolVersion": 1,
+  "id": "crawl4ai",
+  "name": "Crawl4AI",
+  "category": "crawl",
+  "tier": "recommended",
+  "description": "本地 Crawl4AI Hub / MCP",
+  "source": {
+    "github": "https://github.com/youcizi-art/cizhenyu_crawl4ai_hub",
+    "defaultRef": "master"
+  },
+  "install": {
+    "runtime": "python",
+    "steps": [
+      { "run": "ensure_venv", "args": [] },
+      { "run": "pip", "args": ["install", "-U", "pip"] },
+      { "run": "pip", "args": ["install", "-r", "requirements.txt"] }
+    ],
+    "readyCheck": ["mcp_server.py", "manage.py"]
+  },
+  "env": [
+    { "name": "CIZHENYU_AUTH_DIR", "from": "credentialsDir" }
+  ],
+  "mcp": {
+    "transport": "stdio",
+    "command": "python",
+    "args": ["mcp_server.py"],
+    "cwd": "."
+  },
+  "guides": { "setup": "guides/setup.md" },
+  "health": {
+    "requireCredentials": false,
+    "requireReadyFiles": ["mcp_server.py"]
+  },
+  "actions": []
+}
