@@ -4,7 +4,7 @@
   "name": "Crawl4AI",
   "category": "crawl",
   "tier": "recommended",
-  "description": "本地 Crawl4AI Hub / MCP",
+  "description": "Local Crawl4AI Hub / MCP",
   "source": {
     "github": "https://github.com/youcizi-art/cizhenyu_crawl4ai_hub",
     "defaultRef": "master"
@@ -12,25 +12,66 @@
   "install": {
     "runtime": "python",
     "steps": [
-      { "run": "ensure_venv", "args": [] },
-      { "run": "pip", "args": ["install", "-U", "pip"] },
-      { "run": "pip", "args": ["install", "-r", "requirements.txt"] }
+      {
+        "run": "ensure_venv",
+        "args": []
+      },
+      {
+        "run": "pip",
+        "args": [
+          "install",
+          "-U",
+          "pip"
+        ]
+      },
+      {
+        "run": "pip",
+        "args": [
+          "install",
+          "-r",
+          "requirements.txt"
+        ]
+      }
     ],
-    "readyCheck": ["mcp_server.py", "manage.py"]
+    "readyCheck": [
+      "mcp_server.py",
+      "manage.py"
+    ]
   },
   "env": [
-    { "name": "CIZHENYU_AUTH_DIR", "from": "credentialsDir" }
+    {
+      "name": "CIZHENYU_AUTH_DIR",
+      "from": "credentialsDir"
+    }
   ],
   "mcp": {
     "transport": "stdio",
     "command": "python",
-    "args": ["mcp_server.py"],
+    "args": [
+      "mcp_server.py"
+    ],
     "cwd": "."
   },
-  "guides": { "setup": "guides/setup.md" },
+  "guides": {
+    "setup": "guides/setup.md",
+    "setupByLocale": {
+      "zh-CN": "guides/setup.md",
+      "zh": "guides/setup.md",
+      "en": "guides/setup.en.md",
+      "en-US": "guides/setup.en.md"
+    }
+  },
   "health": {
     "requireCredentials": false,
-    "requireReadyFiles": ["mcp_server.py"]
+    "requireReadyFiles": [
+      "mcp_server.py"
+    ]
   },
-  "actions": []
+  "actions": [],
+  "defaultLocale": "en",
+  "i18n": {
+    "zh-CN": {
+      "description": "本地 Crawl4AI Hub / MCP"
+    }
+  }
 }
